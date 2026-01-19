@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scrollable Pinned Cards - Precision Nav</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body, html { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; background: #111; color: white; overflow-x: hidden; }
+
+        /* --- Navigations --- */
+        .nav-menu { position: fixed; top: 20px; left: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white; padding: 12px 20px; cursor: pointer; backdrop-filter: blur(10px); 
+            border-radius: 8px; text-align: left; transition: all 0.3s ease; width: 160px;
+        }
+        .nav-btn.active { background: white; color: black; font-weight: bold; border-color: white; }
+
+        .top-right-nav { position: fixed; top: 20px; right: 20px; z-index: 1000; display: flex; gap: 15px; }
+        /* Container for Button + Menu */
+        .dropdown {
+            position: relative;
+            display: inline-block; 
+        }
+
+        /* The Button Styling */
+        .drop-btn {
+            background: rgba(255, 255, 255, 0.1); 
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white; 
+            padding: 12px 20px; 
+            cursor: pointer; 
+            backdrop-filter: blur(10px); 
+            border-radius: 8px;
+            /* Optional: Remove default button styling if needed */
+            font-family: inherit;
+            font-size: inherit;
+        }
+
+        /* The Dropdown Menu (Hidden by default) */
+        .drop-content {
+            display: none; /* Hidden */
+            position: absolute;
+            top: 100%; 
+            right: 0;
+            
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            
+            min-width: 160px;
+            border-radius: 8px;
+            flex-direction: column;
+            margin-top: 0; 
+            z-index: 2000;
+            overflow: hidden;
+        }
+
+        /* --- THE TRIGGER (Crucial) --- */
+        .dropdown:hover .drop-content {
+            display: flex; /* Visible on Hover */
+        }
+
+        /* Link Styling */
+        .drop-content a { 
+            padding: 12px 16px; 
+            color: white; 
+            text-decoration: none; 
+            transition: background 0.2s;
+        }
+
+        .drop-content a:hover {
+            background: rgba(255, 255, 255, 0.2); 
+        }
+
+        /* --- Sections --- */
+        .parallax-container {
+            position: relative; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden;
+        }
+        .bg-layer {
+            position: absolute; top: -20%; left: 0; width: 100%; height: 140%;
+            background: url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1920&q=80') center/cover;
+        }
+
+        .stack-wrapper { position: relative; width: 100%; }
+        .stack-card {
+            position: absolute; top: 0; left: 0; width: 100%; 
+            height: 150vh; 
+            display: flex; flex-direction: column; align-items: center; justify-content: space-between; 
+            font-size: 3rem; border-top: 1px solid rgba(255,255,255,0.1);
+            padding: 10vh 0; box-sizing: border-box;
+        }
+
+        .rainbow-text {
+            background: linear-gradient(to right, #ff2400, #e8b71d, #1de840, #1ddde8, #2b1de8, #dd1de8, #ff2400);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: clamp(3rem, 8vw, 5rem); font-weight: 900; margin: 0 0 30px 0;
+        }
+        
+        /* --- Card 1 Centering --- */
+         /* --- Card 1 Centering --- */
+        .card-1 {
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Vertical center */
+            align-items: center;     /* Horizontal center */
+            padding: 0 10%;          /* Prevents text hitting edges */
+        }
+
+        .card-content {
+            max-width: 800px;        /* Keeps line length readable */
+            z-index: 2;
+        }
+
+        .card-content h1 {
+            margin-bottom: 30px;
+            font-size: 4rem;
+        }
+
+        .card-content p {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            margin-bottom: 20px;
+            color: #ccc;
+        }
+
+        /* --- Infinite Ticker --- */
+        .ticker-container {
+            width: 100%;
+            overflow: hidden;
+            position: absolute; /* Keeps it at the bottom of the card */
+            bottom: 5vh;
+            white-space: nowrap;
+            mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+        }
+
+        .ticker-wrapper {
+            display: inline-flex; /* Changed to flex for tight spacing */
+            gap: 50px;           /* Space between items */
+            padding-right: 50px; /* Must match the gap for seamlessness */
+        }
+
+        .ticker-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: monospace;
+            font-size: 1.5rem;
+            color: rgba(255,255,255,0.3);
+            text-transform: uppercase;
+        }
+
+        .card-1 { background: #1a1a1a; z-index: 1; }
+        .card-2 { background: #ff5f6d; z-index: 2; }
+        .card-3 { background: #6b778a; z-index: 3; }
+
+        /* --- Footer Update --- */
+        .footer {
+            height: 10vh;
+            background: #000;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between; /* Pushes content to far left and far right */
+            align-items: center;
+            padding: 0 5%; /* Horizontal breathing room */
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Left Section Styling */
+        .footer-left {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .footer-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #555;
+            font-weight: 700;
+        }
+
+        .footer-date {
+            font-size: 0.9rem;
+            color: #888;
+            font-family: monospace;
+        }
+
+        /* Right Section Styling */
+        .footer-right {
+            display: flex;
+            gap: 30px; /* Space between the three links */
+        }
+
+        .footer-link {
+            color: #fff;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            opacity: 0.7;
+        }
+
+        .footer-link i {
+            font-size: 1.1rem;
+        }
+
+        /* Hover State */
+        .footer-link:hover {
+            opacity: 1;
+            color: #00f2ff; /* Your neon cyan brand color */
+            transform: translateY(-2px);
+        }
+
+        .trail-container {
+            position: fixed;
+            top: 0; left: 0;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .trail-segment {
+            position: fixed;
+            top: 0; left: 0;
+            width: 8px; /* Slightly larger base */
+            height: 8px;
+            background: #00f2ff; /* More vibrant neon cyan */
+            border-radius: 50%; /* Circle looks smoother for lines */
+            visibility: hidden;
+            /* This creates the "stand out" glow effect */
+            box-shadow: 0 0 10px rgba(0, 242, 255, 0.6); 
+            will-change: transform;
+        }
+
+        .trail-segment:nth-child(1) { opacity: 0.6; }
+        .trail-segment:nth-child(2) { opacity: 0.55; }
+        .trail-segment:nth-child(3) { opacity: 0.5; }
+        .trail-segment:nth-child(4) { opacity: 0.45; }
+        .trail-segment:nth-child(5) { opacity: 0.4; }
+        .trail-segment:nth-child(6) { opacity: 0.3; }
+        .trail-segment:nth-child(7) { opacity: 0.2; }
+        .trail-segment:nth-child(8) { opacity: 0.1; }
+
+        .card-2 { 
+            background: #0a0a0c !important; 
+            justify-content: flex-start !important; 
+            padding-top: 15vh !important; 
+            perspective: 1000px;
+        }
+
+        .slider-container {
+            position: relative;
+            width: 100%;
+            height: 650px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto; 
+            perspective: 1200px;
+        }
+
+       .slider-card {
+            position: absolute;
+            width: 480px; 
+            height: 600px; 
+            background: #16161a;
+            border: 2px solid rgba(0, 242, 255, 0.1);
+            border-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start; 
+            justify-content: flex-start; 
+            padding: 40px;
+            box-sizing: border-box;
+            will-change: transform, opacity;
+            text-align: left;
+        }
+
+        .card-company {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #00f2ff;
+            margin: 0 0 5px 0;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+
+        .card-role {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: rgba(0, 242, 255, 0.7);
+            margin-bottom: 30px; 
+        }
+
+        .card-desc {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #ccc;
+            margin-bottom: auto; 
+        }
+
+        /* --- Tech Stack Layout Fix --- */
+        .card-tech {
+            width: 100%;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            /* Use flex to allow wrapping without weird gaps */
+            display: flex;
+            flex-wrap: wrap; 
+            align-items: flex-start;
+            line-height: 1.4; /* Controlled line height for wrapped text */
+        }
+
+        .card-tech span {
+            font-weight: 700;
+            color: #fff;
+            font-size: 0.9rem;
+            margin-right: 8px;
+            text-transform: uppercase;
+            flex-shrink: 0; /* Prevents the label from squishing */
+        }
+
+        .card-tech p {
+            display: inline;
+            font-size: 0.9rem;
+            color: #888;
+            margin: 0; /* Crucial: removes the default top/bottom margin causing the gap */
+            padding: 0;
+        }
+
+        .slider-card.active {
+            border-color: #00f2ff;
+            background: #1c1c22;
+        }
+
+        .slider-nav {
+            position: relative;
+            z-index: 1001;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 60px !important;
+        }
+
+        .slider-card .card-num {
+            font-size: 6rem;
+            font-weight: 800;
+            color: #00f2ff;
+            margin: 0;
+        }
+
+        .slider-card span {
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+
+        .slider-btn {
+            background: none;
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 10px 30px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .slider-btn:hover {
+            background: white;
+            color: black;
+        }
+
+        .char {
+            display: inline-block; /* Required for transforms to work */
+            will-change: transform;
+            white-space: pre; /* Preserves spaces between words */
+        }
+
+        /* --- Rolling Marquee Styles --- */
+        .marquee-container {
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            position: relative;
+            margin-bottom: 80px !important; /* Preserving your gap */
+            mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent); /* Fades edges */
+            -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+        }
+
+        .marquee-track {
+            display: inline-block;
+            will-change: transform;
+        }
+
+        .marquee-text {
+            font-size: 6vw; /* Large, bold text */
+            font-weight: 900;
+            color: #00f2ff;
+            display: inline-block;
+            padding-right: 40px; /* Gap between the repeated words */
+            text-transform: uppercase;
+            /* Optional: hollow text style for a tech feel */
+            -webkit-text-stroke: 1px rgba(0, 221, 206, 0.469);
+            color: transparent; 
+        }
+
+        .card-3 {
+            background: #0f0f0f !important;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden; /* Keeps the effect contained */
+            flex-direction: column; 
+            gap: 60px;
+        }
+
+        .scramble-text {
+            /* Crucial for a smooth scramble: Monospace prevents 'shaking' */
+            font-family: 'Courier New', Courier, monospace; 
+            font-size: 3rem;
+            font-weight: 700;
+            color: #00f2ff;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            /* This ensures the container doesn't shift if characters change slightly */
+            display: inline-block;
+            min-width: 100%; 
+            text-align: center;
+        }
+
+        /* The Link List */
+        .pdf-list {
+            width: 80%;
+            max-width: 1000px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .pdf-row {
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            position: relative;
+            transition: background 0.3s;
+            cursor: pointer;
+        }
+
+        .pdf-row:last-child {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .pdf-row a {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 35px 20px;
+            text-decoration: none;
+            color: #fff;
+            transition: opacity 0.3s;
+        }
+
+        .pdf-row:hover a {
+            opacity: 0.5; /* Dim text slightly on hover to make image pop */
+        }
+
+        /* Row Content Styling */
+        .row-id { font-family: monospace; color: #555; font-size: 1rem; margin-right: 20px; }
+        .row-title { font-size: 2vw; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+        .row-meta { font-size: 0.9rem; color: #888; border: 1px solid #333; padding: 5px 15px; border-radius: 20px; }
+
+        /* Floating Cursor Image */
+        .cursor-preview {
+            position: fixed; /* Fixed allows smooth tracking regardless of scroll */
+            top: 0; left: 0;
+            width: 300px;
+            height: 400px;
+            pointer-events: none; /* Crucial: lets you click the links 'through' the image */
+            opacity: 0;
+            z-index: 10;
+            transform: translate(-50%, -50%) scale(0.8); /* Start slightly smaller */
+            transform-origin: center;
+            overflow: hidden;
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+
+        .cursor-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="trail-container">
+        <div class="trail-segment"></div>
+        <div class="trail-segment"></div>
+        <div class="trail-segment"></div>
+        <div class="trail-segment"></div>
+        <div class="trail-segment"></div>
+        <div class="trail-segment"></div>
+        <div class="trail-segment"></div>
+        <div class="trail-segment"></div>
+    </div>
+    <nav class="nav-menu">
+        <button class="nav-btn" data-index="0">About Me</button>
+        <button class="nav-btn" data-index="1">Experience</button>
+        <button class="nav-btn" data-index="2">Projects</button>
+    </nav>
+
+    <div class="top-right-nav">
+        <div class="dropdown"><button class="drop-btn">Contact <i class="fas fa-chevron-down"></i></button>
+            <div class="drop-content"><a href="#">Email</a><a href="#">Chat</a></div>
+        </div>
+        <div class="dropdown"><button class="drop-btn"><i class="fas fa-globe"></i></button>
+            <div class="drop-content"><a href="#">English</a><a href="#">Español</a></div>
+        </div>
+    </div>
+
+    <section class="parallax-container">
+        <div class="bg-layer"></div>
+        <h1 style="position:relative; z-index:2; font-size: 8vw;">John Foley</h1>
+    </section>
+
+    <div class="stack-wrapper">
+        <section class="stack-card card-1">
+            <div class="card-content">
+                <h1 class="rainbow-text">About Me</h1>
+                <p>I currently specialize in <strong>Agentic AI</strong>, architecting systems that bridge the gap between static reasoning and autonomous execution. I've navigated the evolution from early <strong>Transformers</strong> and <strong>Machine Translation</strong> to today's complex multi-agent workflows.</p>
+                <p>My background extends into <strong>Sports Science and Nutrition</strong>, applying an analytical lens to human performance. When I'm not optimizing models, I'm likely refining my swing on the <strong>Golf</strong> course.</p>
+            </div>
+            <div class="ticker-container">
+                <div class="ticker-wrapper" id="ticker">
+                    <div class="ticker-item"><i class="fas fa-hockey-stick-puck"></i> Hurley</div>
+                    <div class="ticker-item"><i class="fas fa-futbol"></i> Football</div>
+                    <div class="ticker-item"><i class="fas fa-laptop-code"></i> Computer</div>
+                    <div class="ticker-item"><i class="fas fa-square-root-variable"></i> Math</div>
+                    <div class="ticker-item"><i class="fas fa-atom"></i> Physics</div>
+                    <div class="ticker-item"><i class="fas fa-microchip"></i> Tech</div>
+                    <div class="ticker-item"><i class="fas fa-hockey-stick-puck"></i> Hurley</div>
+                    <div class="ticker-item"><i class="fas fa-futbol"></i> Football</div>
+                    <div class="ticker-item"><i class="fas fa-laptop-code"></i> Computer</div>
+                    <div class="ticker-item"><i class="fas fa-square-root-variable"></i> Math</div>
+                    <div class="ticker-item"><i class="fas fa-atom"></i> Physics</div>
+                    <div class="ticker-item"><i class="fas fa-microchip"></i> Tech</div>
+                </div>
+            </div>
+        </section>
+        <section class="stack-card card-2">
+            <div class="marquee-container">
+                <div class="marquee-track">
+                    <span class="marquee-text">WORK EXPERIENCE&nbsp;&nbsp;--</span>
+                    <span class="marquee-text">WORK EXPERIENCE&nbsp;&nbsp;--</span>
+                    <span class="marquee-text">WORK EXPERIENCE&nbsp;&nbsp;--</span>
+                    <span class="marquee-text">WORK EXPERIENCE&nbsp;&nbsp;--</span>
+                </div>
+            </div>
+            <div class="slider-container">
+                <div class="slider-card">
+                    <span>June - Aug 2023</span>
+                    <h2 class="card-company">VIOTAS</h2>
+                    <h3 class="card-role">Software Engineer Intern</h3>
+                    <p class="card-desc">
+                        Throughout the summer of 2023 I spent 10 weeks working on the software systems team at VIOTAS. The first few weeks were spent refactoring exisitng codebases to comply with newly added Sonarcloud standards. Following this I integrated into a small team to build out Site 360, an internal tool for field engineers to look at real time data and statuses from managed assets. This work focused on frontend design as well as API consumption and processing data in a BFF (backend-for-frontend) architecture. 
+                    </p>
+                    <div class="card-tech">
+                        <span>Tech Stack:</span> <p>Node.js, Vue.js, Storybook, Backend-For-Frontend, Sonarqube</p>
+                    </div>
+                </div>
+                <div class="slider-card">
+                    <span>Sept 23 - Dec 2023</span>
+                    <h2 class="card-company">Intercom</h2>
+                    <h3 class="card-role">Data Infra Intern</h3>
+                    <p class="card-desc">
+                        As part of Intercom's Data Infrastructure team, my prime responsibilities were contributing to the maintenance and building of data pipelines and ETL process to support the data needs of the wider business. Significant contributions include Slack integrations for ETL failure notifications as well as refactoring a major ingestion pipeline to improve its ETL timeline and remove unnecessary compute costs.
+                    </p>
+                    <div class="card-tech">
+                        <span>Tech Stack:</span> <p>Python, Snowflake, Airflow, SQL, S3 buckets, dbt</p>
+                    </div>
+                </div>
+                <div class="slider-card">
+                    <span>June- Aug 2027</span>
+                    <h2 class="card-company">Transact Campus</h2>
+                    <h3 class="card-role">UI/UX Intern</h3>
+                    <p class="card-desc">
+                        As part of the UI/UX design team at Transact, I contributed to building out a shared components library used by numerous product teams. I specifically worked on a feature toggling component which allowed users to toggle features on / off in different deployment environments. Towards the end of my internship I got the opportunity to move to a product team and develop a management page for a particular service that polled data periodically. 
+                    </p>
+                    <div class="card-tech">
+                        <span>Tech Stack:</span> <p>Typescript, Angular, NX monorepo tooling, storybook</p>
+                    </div>
+                </div>
+                <div class="slider-card">
+                    <span>Jan - May 2025</span>
+                    <h2 class="card-company">Provizio</h2>
+                    <h3 class="card-role">AI/ML Intern</h3>
+                    <p class="card-desc">
+                        As an intern on Provizio's AI/ML team, I helped build out data infrastructure and pipelines. Significant contributions include the automation of data transformations in ingestion pipelines, building data annotation QA pipelines for externally annotated data, creating dashboards to get key QA metrics and applying data augmentation techniques to datasets and evaluating its effects on models.
+                    </p>
+                    <div class="card-tech">
+                        <span>Tech Stack:</span> <p>Python, Apache Airflow, YoloV8, Metabase, Data Augmentation</p>
+                    </div>
+                </div>
+                <div class="slider-card">
+                    <span>Jan 2026 - present</span>
+                    <h2 class="card-company">VIOTAS</h2>
+                    <h3 class="card-role">Software Engineer Intern</h3>
+                    <p class="card-desc">
+                        During this internship I will be focusing on completing my Msc thesis. The area of focus is the integration of CIM 100 models (IEC 61970, 91968) into VIOTAS's software systems. This work will enable digital twinning capabilities for smart grid applications and improve the interoperability with external Transmission System Operators (TSOs). 
+                    </p>
+                    <div class="card-tech">
+                        <span>Tech Stack:</span> <p>Digital Twinning, Common Information Model (CIM), IEC 61970, IEC 61968, Neo4j, Demand Response</p>
+                    </div>
+                </div>
+            </div>
+            <div class="slider-nav">
+                <button class="slider-btn prev">Prev</button>
+                <button class="slider-btn next">Next</button>
+            </div>
+        </section>
+       <section class="stack-card card-3">
+            <h1 class="scramble-text">CHECK OUT MY PROJECTS!</h1>
+            <div class="pdf-list">
+                <div class="pdf-row" data-img="https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=600&q=80">
+                    <a href="path/to/doc1.pdf" target="_blank">
+                        <div>
+                            <span class="row-id">01</span>
+                            <span class="row-title">STT/TTS audio call P2P network</span>
+                        </div>
+                        <span class="row-meta">PDF</span>
+                    </a>
+                </div>
+
+                <div class="pdf-row" data-img="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=80">
+                    <a href="path/to/doc2.pdf" target="_blank">
+                        <div>
+                            <span class="row-id">02</span>
+                            <span class="row-title">Blockchain Web 3 DApp</span>
+                        </div>
+                        <span class="row-meta">PDF</span>
+                    </a>
+                </div>
+
+                <div class="pdf-row" data-img="https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?auto=format&fit=crop&w=600&q=80">
+                    <a href="path/to/doc3.pdf" target="_blank">
+                        <div>
+                            <span class="row-id">03</span>
+                            <span class="row-title">Fine Tuning Whisper STT</span>
+                        </div>
+                        <span class="row-meta">PDF</span>
+                    </a>
+                </div>
+
+                <div class="pdf-row" data-img="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80">
+                    <a href="path/to/doc4.pdf" target="_blank">
+                        <div>
+                            <span class="row-id">04</span>
+                            <span class="row-title">Sketch to Image cLDM</span>
+                        </div>
+                        <span class="row-meta">PDF</span>
+                    </a>
+                </div>
+
+                <div class="pdf-row" data-img="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=600&q=80">
+                    <a href="path/to/doc5.pdf" target="_blank">
+                        <div>
+                            <span class="row-id">05</span>
+                            <span class="row-title">House Price Pred w/ Evol Algos</span>
+                        </div>
+                        <span class="row-meta">PDF</span>
+                    </a>
+                </div>
+            </div>  
+            <div class="cursor-preview">
+                <img src="" alt="Preview">
+            </div>
+        </section>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-left">
+            <span class="footer-label">Last Updated</span>
+            <span class="footer-date">Jan 2026</span>
+        </div>
+
+        <div class="footer-right">
+            <a href="https://github.com/yourusername" target="_blank" class="footer-link">
+                <i class="fab fa-github"></i> Github
+            </a>
+            <a href="https://linkedin.com/in/yourusername" target="_blank" class="footer-link">
+                <i class="fab fa-linkedin"></i> LinkedIn
+            </a>
+            <a href="mailto:your@email.com" class="footer-link">
+                <i class="fas fa-envelope"></i> Email
+            </a>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollToPlugin.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/TextPlugin.min.js"></script>
+    <script>
+        const segments = gsap.utils.toArray(".trail-segment");
+        const numSegments = segments.length;
+        const historySize = 12; // Tighter history for a more responsive "line"
+        const posHistory = [];
+
+        let mouseX = 0, mouseY = 0;
+        let initialized = false;
+
+        for(let i = 0; i < historySize; i++) {
+            posHistory.push({x: 0, y: 0});
+        }
+
+        // Create setters for X, Y, and Scale for a tapered look
+        const setters = segments.map((seg, i) => {
+            // Automatically make each segment smaller and more transparent than the last
+            const ratio = 1 - (i / numSegments);
+            gsap.set(seg, { 
+                scale: ratio, 
+                opacity: ratio * 0.8 // Head is 80% opaque, tail fades to 0
+            });
+
+            return {
+                x: gsap.quickSetter(seg, "x", "px"),
+                y: gsap.quickSetter(seg, "y", "px")
+            };
+        });
+
+        window.addEventListener("mousemove", e => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+
+            if (!initialized) {
+                gsap.set(segments, {visibility: "visible"});
+                initialized = true;
+            }
+        });
+
+        gsap.ticker.add(() => {
+            posHistory.shift();
+            posHistory.push({x: mouseX - 4, y: mouseY - 4}); // Offset by half-width (4px)
+
+            segments.forEach((seg, i) => {
+                // Spacing logic: segments follow slightly behind each other
+                const spacing = Math.floor(historySize / numSegments);
+                let historyIndex = posHistory.length - 1 - (i * spacing);
+                historyIndex = Math.max(0, historyIndex);
+
+                const targetPos = posHistory[historyIndex];
+                setters[i].x(targetPos.x);
+                setters[i].y(targetPos.y);
+            });
+        });
+
+        gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
+
+        // 1. Parallax Hero
+        gsap.to(".bg-layer", {
+            y: "20%",
+            scrollTrigger: { trigger: ".parallax-container", start: "top top", end: "bottom top", scrub: true }
+        });
+
+        // 2. Continuous Animations
+        gsap.to(".rainbow-text", { backgroundPosition: "200% center", duration: 5, ease: "none", repeat: -1 });
+        gsap.to("#ticker", { xPercent: -50, ease: "none", duration: 25, repeat: -1 });
+
+        // --- 3. Existing Deck Logic (Corrected) ---
+        const cards = gsap.utils.toArray(".stack-card");
+        const mainTl = gsap.timeline({
+            scrollTrigger: {
+                trigger: ".stack-wrapper",
+                start: "top top",
+                end: () => "+=" + (cards.length * 150) + "%", 
+                pin: true,
+                scrub: 1,
+                id: "stacking"
+            }
+        });
+
+        cards.forEach((card, i) => {
+            mainTl.addLabel(`card-${i}-start`);
+
+            // ONLY apply the "move up" effect if it is NOT the last card.
+            // The last card should stay fixed so it connects perfectly with the footer.
+            if (i !== cards.length - 1) {
+                mainTl.to(card, {
+                    y: "-50vh", 
+                    ease: "none",
+                    duration: 1 
+                });
+            }
+
+            // Logic for bringing in the NEXT card
+            if (i < cards.length - 1) {
+                mainTl.from(cards[i+1], {
+                    yPercent: 100,
+                    ease: "none",
+                    duration: 1
+                }, ">"); 
+                
+                mainTl.addLabel(`card-${i+1}-top`);
+            }
+        });
+
+        // --- Continuous Rolling Marquee Logic ---
+        // 1. Select the track
+        const marqueeTrack = document.querySelector(".marquee-track");
+
+        // 2. Animate it moving left forever
+        // We use xPercent: -50 if we have doubled the content enough to cover the screen twice.
+        // Since we hardcoded 4 repetitions, moving -50% might be too much if the screen is wide.
+        // A safer bet for a seamless loop is to calculate the width of a single item.
+
+        // Simple approach: Move -50% (assuming the content is duplicated to cover 2x width)
+        gsap.to(marqueeTrack, {
+            xPercent: -25, // Moves 1/4 of the way (one "WORK EXPERIENCE" length) then resets
+            ease: "none",
+            duration: 5,   // Speed of the roll (Adjust this: Lower = Faster)
+            repeat: -1     // Infinite loop
+        });
+
+        /* NOTE: For a truly seamless loop regardless of screen size, 
+        GSAP's "HorizontalLoop" helper is best, but for this specific layout, 
+        simply adding enough <span> tags in HTML (e.g., 6 of them) 
+        and animating xPercent properly works well.
+        */
+
+        // 3. Precision Navigation Calculation
+        const buttons = document.querySelectorAll(".nav-btn");
+
+        buttons.forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const index = parseInt(btn.getAttribute("data-index"));
+                const ST = ScrollTrigger.getById("stacking");
+                
+                // Calculate position based on the timeline labels
+                // Card 0 is at the start (progress 0)
+                // Card 1 top is reached after (Card 0 internal scroll + Card 1 slide up)
+                let labelName = index === 0 ? `card-0-start` : `card-${index}-top`;
+                let progress = mainTl.labels[labelName] / mainTl.totalDuration();
+                
+                const totalDistance = ST.end - ST.start;
+                const targetScroll = ST.start + (totalDistance * progress);
+
+                gsap.to(window, { 
+                    duration: 1.2, 
+                    scrollTo: targetScroll, 
+                    ease: "power2.inOut" 
+                });
+            });
+        });
+
+       // 4. Correct Active Highlighting with 2/3 (66%) Trigger Offset
+        ScrollTrigger.create({
+            trigger: ".stack-wrapper",
+            start: "top top",
+            end: () => "+=" + (cards.length * 150) + "%",
+            onUpdate: (self) => {
+                const totalDuration = mainTl.totalDuration();
+                const currentPos = self.progress * totalDuration;
+
+                buttons.forEach((btn, i) => {
+                    // The point where the card is fully at the top
+                    const reachedTopLabel = i === 0 ? 0 : mainTl.labels[`card-${i}-top`];
+                    
+                    // The point where the card starts its entry animation
+                    // (This is the end of the previous card's internal scroll)
+                    const entryStart = i === 0 ? 0 : reachedTopLabel - 1; 
+
+                    // TRIGGER POINT: 2/3 of the way up the screen
+                    // We calculate a trigger point that is 2/3 through the entry animation
+                    const triggerPoint = i === 0 ? 0 : entryStart + 0.66;
+
+                    // A card stays active until the NEXT card reaches its own trigger point
+                    const nextCardTrigger = (i < cards.length - 1) 
+                        ? (mainTl.labels[`card-${i+1}-top`] - 1) + 0.66
+                        : totalDuration + 1;
+
+                    const isActive = currentPos >= triggerPoint && currentPos < nextCardTrigger;
+                    btn.classList.toggle("active", isActive);
+                });
+            }
+        });
+
+        // Dropdown Logic
+        document.querySelectorAll('.dropdown').forEach(drop => {
+            drop.querySelector('.drop-btn').addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.querySelectorAll('.dropdown').forEach(d => { if(d !== drop) d.classList.remove('is-open'); });
+                drop.classList.toggle('is-open');
+            });
+        });
+        window.addEventListener('click', () => {
+            document.querySelectorAll('.dropdown').forEach(drop => drop.classList.remove('is-open'));
+        });
+
+        const sliderCards = gsap.utils.toArray(".slider-card");
+        const nextBtn = document.querySelector(".next");
+        const prevBtn = document.querySelector(".prev");
+
+        let currentIndex = 0;
+
+        function updateSlider() {
+            sliderCards.forEach((card, i) => {
+                // Use wrap to handle the infinite index logic
+                let diff = i - currentIndex;
+                
+                // Wrap logic so the cards loop correctly
+                if (diff > sliderCards.length / 2) diff -= sliderCards.length;
+                if (diff < -sliderCards.length / 2) diff += sliderCards.length;
+
+                // Determine focus: 0 is center, -1 is left, 1 is right, etc.
+                const isCenter = diff === 0;
+                const xPercent = diff * 110; // Spacing
+                const scale = isCenter ? 1.1 : 0.75;
+                const opacity = isCenter ? 1 : 0.3;
+                const zIndex = isCenter ? 100 : 10 - Math.abs(diff);
+
+                gsap.to(card, {
+                    xPercent: xPercent,
+                    scale: scale,
+                    opacity: opacity,
+                    zIndex: zIndex,
+                    duration: 0.6,
+                    ease: "power2.out"
+                });
+
+                card.classList.toggle("active", isCenter);
+            });
+        }
+
+        // Initial Call
+        updateSlider();
+
+        // Navigation Events
+        nextBtn.addEventListener("click", () => {
+            currentIndex = (currentIndex + 1) % sliderCards.length;
+            updateSlider();
+        });
+
+        prevBtn.addEventListener("click", () => {
+            currentIndex = (currentIndex - 1 + sliderCards.length) % sliderCards.length;
+            updateSlider();
+        });
+
+        // Optional: Auto-play that pauses when not in view
+        let autoPlay = setInterval(() => {
+            currentIndex = (currentIndex + 1) % sliderCards.length;
+            updateSlider();
+        }, 4000);
+
+        document.querySelector('.slider-container').addEventListener('mouseenter', () => clearInterval(autoPlay));
+
+        // --- Card 3: Cursor Tracking Image Preview ---
+        const pdfRows = document.querySelectorAll(".pdf-row");
+        const previewEl = document.querySelector(".cursor-preview");
+        const previewImg = previewEl.querySelector("img");
+
+        // 1. Create QuickSetters for high-performance mouse tracking
+        const xTo = gsap.quickTo(previewEl, "x", {duration: 0.4, ease: "power3"});
+        const yTo = gsap.quickTo(previewEl, "y", {duration: 0.4, ease: "power3"});
+
+        // 2. Track Mouse Movement over the entire Card 3
+        const card3 = document.querySelector(".card-3");
+
+        card3.addEventListener("mousemove", (e) => {
+            // We use clientX/Y because the element is position: fixed
+            xTo(e.clientX);
+            yTo(e.clientY);
+        });
+
+        // 3. Handle Row Hover Events
+        pdfRows.forEach(row => {
+            row.addEventListener("mouseenter", () => {
+                // Get the image URL from the data attribute
+                const imgUrl = row.getAttribute("data-img");
+                
+                // Update the image source
+                previewImg.src = imgUrl;
+
+                // Animate the preview In
+                gsap.to(previewEl, {
+                    autoAlpha: 1, 
+                    scale: 1, 
+                    duration: 0.3,
+                    ease: "power2.out"
+                });
+            });
+
+            row.addEventListener("mouseleave", () => {
+                // Animate the preview Out
+                gsap.to(previewEl, {
+                    autoAlpha: 0, 
+                    scale: 0.8, 
+                    duration: 0.3,
+                    ease: "power2.in"
+                });
+            });
+        });
+
+       // --- Card 3: Throttled Scramble Animation ---
+        const scrambleEl = document.querySelector(".scramble-text");
+        const finalText = scrambleEl.textContent;
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
+
+        // How many frames to wait before changing the characters again
+        // Higher = Slower flicker (4-6 is usually the sweet spot)
+        const frameSkip = 6; 
+        let frameCount = 0;
+
+        const getRandomString = (length) => {
+            return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+        };
+
+        const textTl = gsap.timeline({ repeat: -1 });
+
+        textTl
+            // 1. Wait for 3 seconds while text is readable
+            .to({}, { duration: 3 })
+            
+            // 2. Scramble AWAY (Now slower: 2.5 seconds)
+            .to(scrambleEl, {
+                duration: 2.5,
+                onUpdate: function() {
+                    frameCount++;
+                    // Only update text every 'frameSkip' frames
+                    if (frameCount % frameSkip === 0) {
+                        scrambleEl.textContent = getRandomString(finalText.length);
+                    }
+                }
+            })
+            
+            // 3. Unscramble BACK (Now slower: 3.5 seconds)
+            .to(scrambleEl, {
+                duration: 3.5,
+                onUpdate: function() {
+                    frameCount++;
+                    if (frameCount % frameSkip === 0) {
+                        const progress = this.progress(); 
+                        const solveCount = Math.floor(progress * finalText.length);
+                        
+                        const solvedPart = finalText.substring(0, solveCount);
+                        const randomPart = getRandomString(finalText.length - solveCount);
+                        
+                        scrambleEl.textContent = solvedPart + randomPart;
+                    }
+                },
+                onComplete: () => {
+                    scrambleEl.textContent = finalText;
+                    frameCount = 0; // Reset for next loop
+                }
+            });
+    </script>
+</body>
+</html>
